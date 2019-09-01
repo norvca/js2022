@@ -5,9 +5,28 @@ function User(data) {
   this.errors = [];
 }
 
+User.prototype.cleanUp = function() {
+  if (typeof this.data.username != "string") {
+    this.data.username = "";
+  }
+  if (typeof this.data.email != "string") {
+    this.data.email = "";
+  }
+  if (typeof this.data.password != "string") {
+    this.data.password = "";
+  }
+
+  // Get rid of bogus properties
+  this.data = {
+    username: this.data.username.trim(),
+    email: this.data.email.trim(),
+    password: this.data.password
+  };
+};
+
 User.prototype.validate = function() {
-  const username = this.data.username;
-  const email = this.data.email;
+  const username = this.data.username.trim();
+  const email = this.data.email.trim();
   const password = this.data.password;
 
   // Vertify username
@@ -36,13 +55,14 @@ User.prototype.validate = function() {
   if (password.length > 0 && password.length < 6) {
     this.errors.push("Password must be set at least 6 characters.");
   }
-  if (password.length > 0 && password.length > 30) {
-    this.errors.push("Password must be set at most 30 characters.");
+  if (password.length > 0 && password.length > 50) {
+    this.errors.push("Password must be set at most 50 characters.");
   }
 };
 
 User.prototype.register = function() {
   // 1. Validate user data
+  this.cleanUp();
   this.validate();
 
   // 2. Save user data into database

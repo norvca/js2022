@@ -7,6 +7,7 @@ exports.home = (req, res) => {
 exports.register = (req, res) => {
   const user = new User(req.body);
   user.register();
+  console.log(user);
 
   if (user.errors.length) {
     res.send(user.errors);
