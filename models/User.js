@@ -1,5 +1,5 @@
+const userCollection = require("../db").collection("users");
 const validator = require("validator");
-const db = require("../db");
 
 function User(data) {
   this.data = data;
@@ -68,8 +68,22 @@ User.prototype.register = function() {
 
   // 2. Save user data into database
   if (!this.errors.length) {
-    db.collection("users").insertOne(this.data);
+    userCollection.insertOne(this.data);
   }
+};
+
+User.prototype.login = function(callback) {
+  this.cleanUp();
+  userCollection.findOne(
+    { username: this.data.username },
+    (err, attemptedUser) => {
+      if (attemptedUser && attemptedUser.password == this.data.password) {
+        callback("Login success!");
+      } else {
+        callback("Require valid username/password!");
+      }
+    }
+  );
 };
 
 module.exports = User;

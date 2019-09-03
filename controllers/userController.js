@@ -15,3 +15,10 @@ exports.register = (req, res) => {
     res.send("Thank you for register us!");
   }
 };
+
+exports.login = (req, res) => {
+  const user = new User(req.body);
+  user.login(function(result) {
+    res.send(result);
+  });
+};
