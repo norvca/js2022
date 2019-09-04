@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const userCollection = require("../db").collection("users");
 const validator = require("validator");
 
@@ -68,22 +69,43 @@ User.prototype.register = function() {
 
   // 2. Save user data into database
   if (!this.errors.length) {
-    userCollection.insertOne(this.data);
+    bcrypt
+      .hash(this.data.password, 10)
+      .then(hashedPassword => {
+        this.data.password = hashedPassword;
+        userCollection.insertOne(this.data);
+      })
+      .catch(err => {
+        console.log(err);
+      });
   }
 };
 
-User.prototype.login = function(callback) {
-  this.cleanUp();
-  userCollection.findOne(
-    { username: this.data.username },
-    (err, attemptedUser) => {
-      if (attemptedUser && attemptedUser.password == this.data.password) {
-        callback("Login success!");
-      } else {
-        callback("Require valid username/password!");
-      }
-    }
-  );
+User.prototype.login = function() {
+  return new Promise((resolve, reject) => {
+    this.cleanUp();
+
+    userCollection
+      .findOne({ username: this.data.username })
+      .then(attemptedUser => {
+        if (attemptedUser) {
+          bcrypt
+            .compare(this.data.password, attemptedUser.password)
+            .then(doMatch => {
+              if (doMatch) {
+                resolve("Login success!");
+              } else {
+                reject("Require valid username/password!");
+              }
+            });
+        } else {
+          reject("Require valid username/password!");
+        }
+      })
+      .catch(function(err) {
+        reject("Please try again later.");
+      });
+  });
 };
 
 module.exports = User;

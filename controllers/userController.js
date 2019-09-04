@@ -7,7 +7,6 @@ exports.home = (req, res) => {
 exports.register = (req, res) => {
   const user = new User(req.body);
   user.register();
-  console.log(user);
 
   if (user.errors.length) {
     res.send(user.errors);
@@ -18,7 +17,12 @@ exports.register = (req, res) => {
 
 exports.login = (req, res) => {
   const user = new User(req.body);
-  user.login(function(result) {
-    res.send(result);
-  });
+  user
+    .login()
+    .then(function(result) {
+      res.send(result);
+    })
+    .catch(function(err) {
+      res.send(err);
+    });
 };
