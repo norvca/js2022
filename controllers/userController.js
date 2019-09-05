@@ -1,7 +1,11 @@
 const User = require("../models/User");
 
 exports.home = (req, res) => {
-  res.render("home-guest");
+  if (req.session.user) {
+    res.render("home-dashboard", { username: req.session.user.username });
+  } else {
+    res.render("home-guest");
+  }
 };
 
 exports.register = (req, res) => {
@@ -20,6 +24,7 @@ exports.login = (req, res) => {
   user
     .login()
     .then(function(result) {
+      req.session.user = { username: user.data.username, number: 9527 };
       res.send(result);
     })
     .catch(function(err) {
