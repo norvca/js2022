@@ -55,3 +55,14 @@ exports.logout = (req, res) => {
     res.redirect("/");
   });
 };
+
+exports.mustBeLoggedIn = (req, res, next) => {
+  if (req.session.user) {
+    next();
+  } else {
+    req.flash("errors", "You must be logged in to perform that action");
+    req.session.save(function() {
+      res.redirect("/");
+    });
+  }
+};
