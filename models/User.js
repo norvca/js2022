@@ -3,6 +3,7 @@ const userCollection = require("../db")
   .db()
   .collection("users");
 const validator = require("validator");
+const md5 = require("md5");
 
 function User(data) {
   this.data = data;
@@ -104,6 +105,7 @@ User.prototype.register = function() {
         .catch(err => {
           console.log(err);
         });
+      this.getAvatar();
       resolve();
     } else {
       reject(this.errors);
@@ -123,6 +125,8 @@ User.prototype.login = function() {
             .compare(this.data.password, attemptedUser.password)
             .then(doMatch => {
               if (doMatch) {
+                this.data = attemptedUser;
+                this.getAvatar();
                 resolve("Login success!");
               } else {
                 reject("Require valid username/password!");
@@ -136,6 +140,10 @@ User.prototype.login = function() {
         reject("Please try again later.");
       });
   });
+};
+
+User.prototype.getAvatar = function() {
+  this.avatar = `https://gravatar.com/avatar/${md5(this.data.email)}?s=128`;
 };
 
 module.exports = User;
