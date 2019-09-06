@@ -4,19 +4,29 @@ exports.home = (req, res) => {
   if (req.session.user) {
     res.render("home-dashboard", { username: req.session.user.username });
   } else {
-    res.render("home-guest", { errors: req.flash("errors") });
+    res.render("home-guest", {
+      errors: req.flash("errors"),
+      regErrors: req.flash("regErrors")
+    });
   }
 };
 
-exports.register = (req, res) => {
+exports.register = function(req, res) {
   const user = new User(req.body);
-  user.register();
-
-  if (user.errors.length) {
-    res.send(user.errors);
-  } else {
-    res.send("Thank you for register us!");
-  }
+  user
+    .register()
+    .then(() => {
+      req.session.user = { username: user.data.username };
+      req.session.save(function() {
+        res.redirect("/");
+      });
+    })
+    .catch(regErrors => {
+      req.flash("regErrors", regErrors);
+      req.session.save(function() {
+        res.redirect("/");
+      });
+    });
 };
 
 exports.login = (req, res) => {

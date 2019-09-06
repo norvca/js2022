@@ -29,58 +29,86 @@ User.prototype.cleanUp = function() {
 };
 
 User.prototype.validate = function() {
-  const username = this.data.username.trim();
-  const email = this.data.email.trim();
-  const password = this.data.password;
+  return new Promise(async (resolve, reject) => {
+    const username = this.data.username.trim();
+    const email = this.data.email.trim();
+    const password = this.data.password;
 
-  // Vertify username
-  if (username === "") {
-    this.errors.push("You must provide a username.");
-  }
-  if (username != "" && !validator.isAlphanumeric(username)) {
-    this.errors.push("User can only contain letters and numbers.");
-  }
-  if (username.length > 0 && username.length < 4) {
-    this.errors.push("username must be set at least 4 characters.");
-  }
-  if (username.length > 0 && username.length > 30) {
-    this.errors.push("username must be set at most 30 characters.");
-  }
+    // Vertify username
+    if (username === "") {
+      this.errors.push("You must provide a username.");
+    }
+    if (username != "" && !validator.isAlphanumeric(username)) {
+      this.errors.push("User can only contain letters and numbers.");
+    }
+    if (username.length > 0 && username.length < 4) {
+      this.errors.push("username must be set at least 4 characters.");
+    }
+    if (username.length > 0 && username.length > 30) {
+      this.errors.push("username must be set at most 30 characters.");
+    }
 
-  // Vertify email
-  if (!validator.isEmail(email)) {
-    this.errors.push("You must provide a valid email.");
-  }
+    // Vertify email
+    if (!validator.isEmail(email)) {
+      this.errors.push("You must provide a valid email.");
+    }
 
-  // Vertify password
-  if (password === "") {
-    this.errors.push("You must provide a password.");
-  }
-  if (password.length > 0 && password.length < 6) {
-    this.errors.push("Password must be set at least 6 characters.");
-  }
-  if (password.length > 0 && password.length > 50) {
-    this.errors.push("Password must be set at most 50 characters.");
-  }
+    // Vertify password
+    if (password === "") {
+      this.errors.push("You must provide a password.");
+    }
+    if (password.length > 0 && password.length < 6) {
+      this.errors.push("Password must be set at least 6 characters.");
+    }
+    if (password.length > 0 && password.length > 50) {
+      this.errors.push("Password must be set at most 50 characters.");
+    }
+
+    // Check if username has been taken
+    if (
+      username.length >= 4 &&
+      username.length <= 30 &&
+      validator.isAlphanumeric(username)
+    ) {
+      let usernameExist = await userCollection.findOne({ username: username });
+      if (usernameExist) {
+        this.errors.push("Username is already taken.");
+      }
+    }
+
+    // Check if email has been taken
+    if (validator.isEmail(email)) {
+      let emailExist = await userCollection.findOne({ email: email });
+      if (emailExist) {
+        this.errors.push("email is already taken.");
+      }
+    }
+    resolve();
+  });
 };
 
 User.prototype.register = function() {
-  // 1. Validate user data
-  this.cleanUp();
-  this.validate();
+  return new Promise(async (resolve, reject) => {
+    // 1. Validate user data
+    this.cleanUp();
+    await this.validate();
 
-  // 2. Save user data into database
-  if (!this.errors.length) {
-    bcrypt
-      .hash(this.data.password, 10)
-      .then(hashedPassword => {
-        this.data.password = hashedPassword;
-        userCollection.insertOne(this.data);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  }
+    // 2. Save user data into database
+    if (!this.errors.length) {
+      bcrypt
+        .hash(this.data.password, 10)
+        .then(async hashedPassword => {
+          this.data.password = hashedPassword;
+          await userCollection.insertOne(this.data);
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      resolve();
+    } else {
+      reject(this.errors);
+    }
+  });
 };
 
 User.prototype.login = function() {
