@@ -2,6 +2,7 @@ const postsCollection = require("../db")
   .db()
   .collection("posts");
 const ObjectId = require("mongodb").ObjectId;
+const User = require("../models/User");
 
 function Post(data, userId) {
   this.data = data;
@@ -65,9 +66,40 @@ Post.findPostById = function(id) {
       return reject("Invalid post id!");
     }
 
-    let post = await postsCollection.findOne({ _id: new ObjectId(id) });
-    if (post) {
-      resolve(post);
+    let posts = await postsCollection
+      .aggregate([
+        { $match: { _id: new ObjectId(id) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "author",
+            foreignField: "_id",
+            as: "authorDocument"
+          }
+        },
+        {
+          $project: {
+            title: 1,
+            body: 1,
+            createdDate: 1,
+            author: { $arrayElemAt: ["$authorDocument", 0] }
+          }
+        }
+      ])
+      .toArray();
+
+    // Clean up author property in each post object
+    posts.map(function(post) {
+      post.author = {
+        username: post.author.username,
+        avatar: new User(post.author, true).avatar
+      };
+
+      return post;
+    });
+
+    if (posts.length) {
+      resolve(posts[0]);
     } else {
       reject("Can not find the post!");
     }

@@ -5,9 +5,15 @@ const userCollection = require("../db")
 const validator = require("validator");
 const md5 = require("md5");
 
-function User(data) {
+function User(data, getAvatar) {
   this.data = data;
   this.errors = [];
+  if (getAvatar == undefined) {
+    getAvatar = false;
+  }
+  if (getAvatar) {
+    this.getAvatar();
+  }
 }
 
 User.prototype.cleanUp = function() {
