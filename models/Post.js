@@ -59,4 +59,19 @@ Post.prototype.create = function() {
   });
 };
 
+Post.findPostById = function(id) {
+  return new Promise(async function(resolve, reject) {
+    if (typeof id != "string" || !ObjectId.isValid(id)) {
+      return reject("Invalid post id!");
+    }
+
+    let post = await postsCollection.findOne({ _id: new ObjectId(id) });
+    if (post) {
+      resolve(post);
+    } else {
+      reject("Can not find the post!");
+    }
+  });
+};
+
 module.exports = Post;
