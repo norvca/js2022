@@ -71,3 +71,21 @@ exports.mustBeLoggedIn = (req, res, next) => {
     });
   }
 };
+
+exports.ifUserExists = (req, res, next) => {
+  User.findByUsername(req.params.username)
+    .then(userDoc => {
+      req.profileUser = userDoc;
+      next();
+    })
+    .catch(() => {
+      res.render("404");
+    });
+};
+
+exports.profilePostsScreen = (req, res) => {
+  res.render("profile", {
+    profileUsername: req.profileUser.username,
+    profileAvatar: req.profileUser.avatar
+  });
+};
