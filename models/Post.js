@@ -60,36 +60,31 @@ Post.prototype.create = function() {
   });
 };
 
-Post.findPostById = function(id) {
+Post.reusablePostQuery = function(uniqueOperations) {
   return new Promise(async function(resolve, reject) {
-    if (typeof id != "string" || !ObjectId.isValid(id)) {
-      return reject("Invalid post id!");
-    }
-
-    let posts = await postsCollection
-      .aggregate([
-        { $match: { _id: new ObjectId(id) } },
-        {
-          $lookup: {
-            from: "users",
-            localField: "author",
-            foreignField: "_id",
-            as: "authorDocument"
-          }
-        },
-        {
-          $project: {
-            title: 1,
-            body: 1,
-            createdDate: 1,
-            author: { $arrayElemAt: ["$authorDocument", 0] }
-          }
+    let aggreOperations = uniqueOperations.concat([
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "authorDocument"
         }
-      ])
-      .toArray();
+      },
+      {
+        $project: {
+          title: 1,
+          body: 1,
+          createdDate: 1,
+          author: { $arrayElemAt: ["$authorDocument", 0] }
+        }
+      }
+    ]);
+
+    let posts = await postsCollection.aggregate(aggreOperations).toArray();
 
     // Clean up author property in each post object
-    posts.map(function(post) {
+    posts = posts.map(function(post) {
       post.author = {
         username: post.author.username,
         avatar: new User(post.author, true).avatar
@@ -98,12 +93,33 @@ Post.findPostById = function(id) {
       return post;
     });
 
+    resolve(posts);
+  });
+};
+
+Post.findSingleById = function(id) {
+  return new Promise(async function(resolve, reject) {
+    if (typeof id != "string" || !ObjectId.isValid(id)) {
+      return reject("Invalid post id!");
+    }
+
+    let posts = await Post.reusablePostQuery([
+      { $match: { _id: new ObjectId(id) } }
+    ]);
+
     if (posts.length) {
       resolve(posts[0]);
     } else {
       reject("Can not find the post!");
     }
   });
+};
+
+Post.findByAuthorId = function(authorId) {
+  return Post.reusablePostQuery([
+    { $match: { author: authorId } },
+    { $sort: { createdDate: -1 } }
+  ]);
 };
 
 module.exports = Post;
