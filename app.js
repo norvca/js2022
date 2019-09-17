@@ -25,6 +25,14 @@ app.set("views", "views");
 app.use(express.static("public"));
 
 app.use(function(req, res, next) {
+  // Make current user id available on req object
+  if (req.session.user) {
+    req.visitorId = req.session.user._id;
+  } else {
+    req.visitorId = 0;
+  }
+
+  // Make user session data available in view template
   res.locals.user = req.session.user;
   next();
 });
