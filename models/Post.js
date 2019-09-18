@@ -4,10 +4,11 @@ const postsCollection = require("../db")
 const ObjectId = require("mongodb").ObjectId;
 const User = require("../models/User");
 
-function Post(data, userId) {
+function Post(data, userId, requestedPostId) {
   this.data = data;
   this.errors = [];
   this.userId = userId;
+  this.requestedPostId = requestedPostId;
 }
 
 Post.prototype.cleanUp = function() {
@@ -60,6 +61,38 @@ Post.prototype.create = function() {
   });
 };
 
+Post.prototype.update = function() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let post = await Post.findSingleById(this.requestedPostId, this.userId);
+      if (post.isVisitorOwner) {
+        let status = await this.actuallyUpdate();
+        resolve(status);
+      } else {
+        reject();
+      }
+    } catch {
+      reject();
+    }
+  });
+};
+
+Post.prototype.actuallyUpdate = function() {
+  return new Promise(async (resolve, reject) => {
+    this.cleanUp();
+    this.validate();
+    if (!this.errors.length) {
+      postsCollection.findOneAndUpdate(
+        { _id: new ObjectId(this.requestedPostId) },
+        { $set: { title: this.data.title, body: this.data.body } }
+      );
+      resolve("success");
+    } else {
+      resolve("failure");
+    }
+  });
+};
+
 Post.reusablePostQuery = function(uniqueOperations, visitorId) {
   return new Promise(async function(resolve, reject) {
     let aggreOperations = uniqueOperations.concat([
@@ -86,6 +119,7 @@ Post.reusablePostQuery = function(uniqueOperations, visitorId) {
     posts = posts.map(function(post) {
       post.isVisitorOwner = post.author._id.equals(visitorId);
       post.author = {
+        _id: post.author._id,
         username: post.author.username,
         avatar: new User(post.author, true).avatar
       };

@@ -19,8 +19,52 @@ exports.create = function(req, res) {
 exports.viewSingle = async function(req, res) {
   try {
     let post = await Post.findSingleById(req.params.id, req.visitorId);
+
     res.render("single-post-screen", { post: post });
   } catch {
     res.render("404");
   }
+};
+
+exports.viewEditScreen = async function(req, res) {
+  try {
+    let post = await Post.findSingleById(req.params.id, req.visitorId);
+
+    if (post.author._id == req.visitorId) {
+      res.render("edit-post", { post: post });
+    } else {
+      req.flash("errors", "You do not have permisson to perform that action.");
+      req.session.save(() => res.redirect("/"));
+    }
+  } catch {
+    res.render("404");
+  }
+};
+
+exports.edit = function(req, res) {
+  let post = new Post(req.body, req.visitorId, req.params.id);
+  post
+    .update()
+    .then(status => {
+      if (status == "success") {
+        // Post was successfully updated
+        req.flash("success", "Post successfully updated.");
+        req.session.save(function() {
+          res.redirect(`/post/${req.params.id}/edit`);
+        });
+      } else {
+        // User did have permission, but there were validation errors
+        post.errors.forEach(function(error) {
+          req.flash("errors", error);
+        });
+
+        req.session.save(() => res.redirect(`/post/${req.params.id}/edit`));
+      }
+    })
+    .catch(() => {
+      // A post with requested id doesn't exist
+      // Or current visitor is not the owner of requested post
+      req.flash("errors", "You do not have permisson to perform that action.");
+      req.session.save(() => res.redirect("/"));
+    });
 };
