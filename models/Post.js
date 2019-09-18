@@ -48,8 +48,8 @@ Post.prototype.create = function() {
       // Save post into database
       postsCollection
         .insertOne(this.data)
-        .then(() => {
-          resolve();
+        .then(info => {
+          resolve(info.ops[0]._id);
         })
         .catch(() => {
           this.errors.push("Please try again later.");
