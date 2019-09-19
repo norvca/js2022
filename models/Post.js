@@ -3,6 +3,7 @@ const postsCollection = require("../db")
   .collection("posts");
 const ObjectId = require("mongodb").ObjectId;
 const User = require("../models/User");
+const sanitizeHTML = require("sanitize-html");
 
 function Post(data, userId, requestedPostId) {
   this.data = data;
@@ -23,8 +24,14 @@ Post.prototype.cleanUp = function() {
   }
 
   this.data = {
-    title: title,
-    body: body,
+    title: sanitizeHTML(title.trim(), {
+      allowedTags: [],
+      allowedAttributes: {}
+    }),
+    body: sanitizeHTML(body.trim(), {
+      allowedTags: [],
+      allowedAttributes: {}
+    }),
     createdDate: new Date(),
     author: ObjectId(this.userId)
   };
